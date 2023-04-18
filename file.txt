@@ -1,1 +1,0 @@
-ERROR "O arquivo file.txt não foi encontrado"
