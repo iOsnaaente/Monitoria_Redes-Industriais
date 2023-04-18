@@ -1,6 +1,9 @@
 import socket
 import threading
 
+# Biblioteca utilizado para criptografia 
+from cryptography.fernet import Fernet  
+
 # Cria um socket TCP/IP
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM )
 
@@ -17,15 +20,35 @@ server_socket.listen(5)
 # Lista para armazenar os clientes conectados
 clients = []
 
+# Gera uma chave de criptografia única
+UNIQUE_KEY = Fernet.generate_key() 
+
+# Gera o encriptador Fernet 
+f = Fernet( UNIQUE_KEY )
+
 # Função para enviar uma mensagem para todos os clientes conectados
 def broadcast( message ):
     for client in clients:
-        client.send(message)
+        client.send( message )
 
 # Função para lidar com as conexões de clientes
 def handle_client( client_socket, client_address ):
-    # Adiciona o cliente à lista de clientes conectados
-    clients.append(client_socket)
+    # Envia a chave de criptgrafia para o cliente 
+    client_socket.send( UNIQUE_KEY )
+    
+    # Aguarda a resposta do cliente 
+    recv_data = client_socket.recv( 1024 )
+    # Verifica o conteudo retornado 
+    if f.decrypt( recv_data ) == b'OK':
+        # Se o cliente retornar a mensagem b'OK' com a 
+        #   Criptografia certa, então eles possuem a mesma chave
+        #   e ele pode ser adicionado a lista de clientes ativos
+        print( f'Cliente {client_address} sincronizado' )
+        clients.append( client_socket )
+    else:
+        # Caso contrário, encerra a comunicação com o cliente 
+        return False 
+
     while True:
         try:
             # Recebe a mensagem do cliente
