@@ -14,10 +14,20 @@ server_socket.bind((IP, PORT))
 server_socket.listen(5)
 
 # Caminho absoluto para o diretório das imagens
-img_path = os.path.dirname( __file__ ) + '/imagens/'
+files_path = os.path.dirname( __file__ ) + '/files/'
+
+# Pega os arquivos disponíveis na pasta files 
+files = os.listdir(files_path)
+# Adiciona um marcador de fim de lista End Of File 
+files.append( 'EOF')
+print( 'Arquivos disponíveis: ', files )
 
 # Função para tratar a comunicação com cada cliente paralelamente 
 def receive_file( client_socket ):
+
+    # Envia os nomes dos arquivos disponíveis 
+    for file in files:
+        client_socket.send( file.encode() )
 
     # Recebe a mensagem do cliente
     data = client_socket.recv(1024)
@@ -29,21 +39,15 @@ def receive_file( client_socket ):
         file_name = data.split()[1].decode()
         print( f'Cliente solicitou o arquivo {file_name}' )
         
-  # Verifica se o arquivo existe
-        if file_name in [
-            'cachorro.jpg', 	
-            'gato.jpg', 	
-            'iguana.jpg', 
-            'tucano.jpg' 
-        ]:
-            
+        # Verifica se o arquivo existe
+        if file_name in files:
             print(f'Arquivo {file_name} encontrado.')
             # Abre o arquivo para leitura
-            with open( img_path + file_name, 'rb') as f:
+            with open( files_path + file_name, 'rb') as f:
                 # Envia o arquivo em pacotes de 1024 em 1024 bytes
                 count = 0
                 while True:
-                    data = f.read(1024)
+                    data = f.read(15000)
                     if not data:
                         break
                     client_socket.send(data)
@@ -52,6 +56,7 @@ def receive_file( client_socket ):
 
             # Envia uma mensagem final para o cliente 
             print('Envio concluído' )
+            
             client_socket.send( b'OK' )
 
         # Se o arquivo não existe, encerra a conexão 
